@@ -19,6 +19,7 @@
                     <Button Content="Open Book" Click="OpenBook_Click" Margin="0,10,0,0" Padding="5"/>
                     <Button x:Name="TeacherDashboardBtn" Content="Teacher Dashboard" Click="TeacherDashboard_Click" Margin="0,5" Padding="5"/>
                     <Button Content="Parallel Reading" Click="ParallelReading_Click" Margin="0,5" Padding="5"/>
+                    <Button Content="Password Generator" Click="PasswordGenerator_Click" Margin="0,5" Padding="5"/>
                 </StackPanel>
             </ScrollViewer>
         </Border>

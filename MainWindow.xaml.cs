@@ -282,5 +282,21 @@ namespace ScholasticaReader
                 MessageBox.Show($"Error opening parallel reading: {ex.Message}", "Parallel Reading Error");
             }
         }
+
+        private void PasswordGenerator_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var passwordGenWindow = new PasswordGeneratorWindow();
+                if (passwordGenWindow != null)
+                {
+                    passwordGenWindow.ShowDialog();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error opening password generator: {ex.Message}", "Password Generator Error");
+            }
+        }
     }
 }
