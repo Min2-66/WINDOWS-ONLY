@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 using System.Windows;
-using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore.Sqlite;
 
 namespace ScholasticaReader.Services
 {
@@ -13,32 +13,47 @@ namespace ScholasticaReader.Services
 
         public LicenseService()
         {
-            dbPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "ScholasticaReader", "license.db");
-            Directory.CreateDirectory(Path.GetDirectoryName(dbPath));
-            InitializeDatabase();
-            LoadLicenseStatus();
+            try
+            {
+                dbPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "ScholasticaReader", "license.db");
+                Directory.CreateDirectory(Path.GetDirectoryName(dbPath) ?? string.Empty);
+                InitializeDatabase();
+                LoadLicenseStatus();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error initializing LicenseService: {ex.Message}");
+            }
         }
 
         private void InitializeDatabase()
         {
-            if (!File.Exists(dbPath))
+            try
             {
-                using (var connection = new SqliteConnection($"Data Source={dbPath}"))
+                if (!File.Exists(dbPath))
                 {
-                    connection.Open();
-                    var command = connection.CreateCommand();
-                    command.CommandText = @"
-                        CREATE TABLE Licenses (
-                            Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                            HWID TEXT NOT NULL,
-                            ActivationCode TEXT NOT NULL,
-                            ExpiryDate TEXT NOT NULL,
-                            IsPremium INTEGER NOT NULL
-                        );
-                    ";
-                    command.ExecuteNonQuery();
+                    var connectionString = $"Data Source={dbPath}";
+                    using (var connection = new SqliteConnection(connectionString))
+                    {
+                        connection.Open();
+                        var command = connection.CreateCommand();
+                        command.CommandText = @"
+                            CREATE TABLE Licenses (
+                                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                HWID TEXT NOT NULL,
+                                ActivationCode TEXT NOT NULL,
+                                ExpiryDate TEXT NOT NULL,
+                                IsPremium INTEGER NOT NULL
+                            );
+                        ";
+                        command.ExecuteNonQuery();
+                    }
                 }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error initializing database: {ex.Message}");
             }
         }
 
@@ -46,7 +61,8 @@ namespace ScholasticaReader.Services
         {
             try
             {
-                using (var connection = new SqliteConnection($"Data Source={dbPath}"))
+                var connectionString = $"Data Source={dbPath}";
+                using (var connection = new SqliteConnection(connectionString))
                 {
                     connection.Open();
                     var command = connection.CreateCommand();
@@ -55,7 +71,10 @@ namespace ScholasticaReader.Services
                     {
                         if (reader.Read())
                         {
-                            licenceExpiry = DateTime.Parse(reader.GetString(0));
+                            if (DateTime.TryParse(reader.GetString(0), out DateTime expiry))
+                            {
+                                licenceExpiry = expiry;
+                            }
                             isPremium = reader.GetInt32(1) == 1;
                         }
                     }
@@ -78,21 +97,29 @@ namespace ScholasticaReader.Services
 
         private bool ShowActivationDialog()
         {
-            string hwid = HWIDHelper.GetHWID();
-            string message = $"Your Hardware ID (HWID):\n{hwid}\n\nSend this to the developer to get an activation code.\n\nEnter the code below:";
-            string code = Microsoft.VisualBasic.Interaction.InputBox(message, "Activation", "");
-            if (string.IsNullOrEmpty(code))
-                return false;
+            try
+            {
+                string hwid = HWIDHelper.GetHWID();
+                string message = $"Your Hardware ID (HWID):\n{hwid}\n\nSend this to the developer to get an activation code.\n\nEnter the code below:";
+                string? code = Microsoft.VisualBasic.Interaction.InputBox(message, "Activation", "");
+                if (string.IsNullOrEmpty(code))
+                    return false;
 
-            if (VerifyActivationCode(hwid, code))
-            {
-                SaveLicense(code);
-                LoadLicenseStatus();
-                return true;
+                if (VerifyActivationCode(hwid, code))
+                {
+                    SaveLicense(code);
+                    LoadLicenseStatus();
+                    return true;
+                }
+                else
+                {
+                    MessageBox.Show("Invalid activation code or it has expired.", "Activation Failed");
+                    return false;
+                }
             }
-            else
+            catch (Exception ex)
             {
-                MessageBox.Show("Invalid activation code or it has expired.", "Activation Failed");
+                System.Diagnostics.Debug.WriteLine($"Error in activation dialog: {ex.Message}");
                 return false;
             }
         }
@@ -105,8 +132,11 @@ namespace ScholasticaReader.Services
                     return false;
 
                 string decrypted = SecurityService.DecryptString(code);
+                if (string.IsNullOrEmpty(decrypted))
+                    return false;
+                    
                 var parts = decrypted.Split('|');
-                if (parts.Length != 3) 
+                if (parts.Length < 2) 
                     return false;
                 if (parts[0] != hwid) 
                     return false;
@@ -131,6 +161,9 @@ namespace ScholasticaReader.Services
             try
             {
                 string decrypted = SecurityService.DecryptString(code);
+                if (string.IsNullOrEmpty(decrypted))
+                    return;
+                    
                 var parts = decrypted.Split('|');
                 
                 if (parts.Length < 2 || !DateTime.TryParse(parts[1], out DateTime expiry))
@@ -138,7 +171,8 @@ namespace ScholasticaReader.Services
                     
                 bool premium = parts.Length > 2 && parts[2] == "Premium";
 
-                using (var connection = new SqliteConnection($"Data Source={dbPath}"))
+                var connectionString = $"Data Source={dbPath}";
+                using (var connection = new SqliteConnection(connectionString))
                 {
                     connection.Open();
                     var cmd = connection.CreateCommand();
