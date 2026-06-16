@@ -24,7 +24,10 @@ namespace ScholasticaReader
                 license = new LicenseService();
                 LoadLibrary();
                 InitializeWebView();
-                if (!license.IsPremium) TeacherDashboardBtn.IsEnabled = false;
+                if (license != null && !license.IsPremium) 
+                {
+                    TeacherDashboardBtn.IsEnabled = false;
+                }
             }
             catch (Exception ex)
             {
@@ -36,8 +39,12 @@ namespace ScholasticaReader
         {
             try
             {
+                if (BookWebView == null) return;
                 await BookWebView.EnsureCoreWebView2Async(null);
-                BookWebView.CoreWebView2.NavigateToString("<html><body><h1>Select a book</h1></body></html>");
+                if (BookWebView.CoreWebView2 != null)
+                {
+                    BookWebView.CoreWebView2.NavigateToString("<html><body><h1>Select a book</h1></body></html>");
+                }
             }
             catch (Exception ex)
             {
@@ -51,11 +58,21 @@ namespace ScholasticaReader
             try
             {
                 library.Clear();
-                foreach (var b in bookService.GetAllBooks())
+                var books = bookService?.GetAllBooks();
+                if (books != null)
                 {
-                    library.Add(b);
+                    foreach (var b in books)
+                    {
+                        if (b != null)
+                        {
+                            library.Add(b);
+                        }
+                    }
                 }
-                LibraryListBox.ItemsSource = library;
+                if (LibraryListBox != null)
+                {
+                    LibraryListBox.ItemsSource = library;
+                }
             }
             catch (Exception ex)
             {
@@ -67,17 +84,29 @@ namespace ScholasticaReader
         {
             try
             {
-                var selected = LibraryListBox.SelectedItem as Book;
-                if (selected == null)
+                if (LibraryListBox?.SelectedItem is Book selected && selected != null)
+                {
+                    if (string.IsNullOrEmpty(selected.FilePath))
+                    {
+                        MessageBox.Show("Book file path is invalid.", "Invalid Book");
+                        return;
+                    }
+
+                    string content = bookService?.GetBookContent(selected.FilePath);
+                    if (!string.IsNullOrEmpty(content) && BookWebView != null)
+                    {
+                        await BookWebView.EnsureCoreWebView2Async(null);
+                        if (BookWebView.CoreWebView2 != null)
+                        {
+                            BookWebView.CoreWebView2.NavigateToString(content);
+                            currentPage = 1;
+                        }
+                    }
+                }
+                else
                 {
                     MessageBox.Show("Please select a book first.", "No Book Selected");
-                    return;
                 }
-
-                string content = bookService.GetBookContent(selected.FilePath);
-                await BookWebView.EnsureCoreWebView2Async(null);
-                BookWebView.CoreWebView2.NavigateToString(content);
-                currentPage = 1; // Reset page counter
             }
             catch (Exception ex)
             {
@@ -89,9 +118,9 @@ namespace ScholasticaReader
         {
             try
             {
-                if (LibraryListBox.SelectedItem is Book book && !string.IsNullOrWhiteSpace(NoteTextBox.Text))
+                if (LibraryListBox?.SelectedItem is Book book && book != null && !string.IsNullOrWhiteSpace(NoteTextBox?.Text))
                 {
-                    annotationService.AddAnnotation(new Annotation 
+                    annotationService?.AddAnnotation(new Annotation 
                     { 
                         BookId = book.Id, 
                         Type = "Note", 
@@ -100,11 +129,18 @@ namespace ScholasticaReader
                         CreatedAt = DateTime.Now 
                     });
                     RefreshAnnotations(book.Id);
-                    NoteTextBox.Clear();
+                    if (NoteTextBox != null)
+                    {
+                        NoteTextBox.Clear();
+                    }
                 }
-                else if (LibraryListBox.SelectedItem == null)
+                else if (LibraryListBox?.SelectedItem == null)
                 {
                     MessageBox.Show("Please select a book first.", "No Book Selected");
+                }
+                else
+                {
+                    MessageBox.Show("Please enter a note.", "Empty Note");
                 }
             }
             catch (Exception ex)
@@ -117,9 +153,9 @@ namespace ScholasticaReader
         {
             try
             {
-                if (LibraryListBox.SelectedItem is Book book)
+                if (LibraryListBox?.SelectedItem is Book book && book != null)
                 {
-                    annotationService.AddAnnotation(new Annotation 
+                    annotationService?.AddAnnotation(new Annotation 
                     { 
                         BookId = book.Id, 
                         Type = "Highlight", 
@@ -144,7 +180,11 @@ namespace ScholasticaReader
         {
             try
             {
-                AnnotationsListBox.ItemsSource = annotationService.GetAnnotationsForBook(bookId);
+                var annotations = annotationService?.GetAnnotationsForBook(bookId);
+                if (AnnotationsListBox != null)
+                {
+                    AnnotationsListBox.ItemsSource = annotations;
+                }
             }
             catch (Exception ex)
             {
@@ -156,12 +196,15 @@ namespace ScholasticaReader
         {
             try
             {
-                if (LibraryListBox.SelectedItem == null)
+                if (LibraryListBox?.SelectedItem == null)
                 {
                     MessageBox.Show("Please select a book first.", "No Book Selected");
                     return;
                 }
-                new System.Speech.Synthesis.SpeechSynthesizer().SpeakAsync("Text to speech sample.");
+                using (var synthesizer = new System.Speech.Synthesis.SpeechSynthesizer())
+                {
+                    synthesizer.SpeakAsync("Text to speech sample.");
+                }
             }
             catch (Exception ex)
             {
@@ -174,7 +217,10 @@ namespace ScholasticaReader
             try
             {
                 var flashcardWindow = new FlashcardWindow();
-                flashcardWindow.ShowDialog();
+                if (flashcardWindow != null)
+                {
+                    flashcardWindow.ShowDialog();
+                }
             }
             catch (Exception ex)
             {
@@ -187,7 +233,10 @@ namespace ScholasticaReader
             try
             {
                 var mindMapWindow = new MindMapWindow();
-                mindMapWindow.ShowDialog();
+                if (mindMapWindow != null)
+                {
+                    mindMapWindow.ShowDialog();
+                }
             }
             catch (Exception ex)
             {
@@ -199,10 +248,13 @@ namespace ScholasticaReader
         {
             try
             {
-                if (license.IsPremium)
+                if (license != null && license.IsPremium)
                 {
                     var dashboardWindow = new TeacherDashboard();
-                    dashboardWindow.ShowDialog();
+                    if (dashboardWindow != null)
+                    {
+                        dashboardWindow.ShowDialog();
+                    }
                 }
                 else
                 {
@@ -220,7 +272,10 @@ namespace ScholasticaReader
             try
             {
                 var parallelWindow = new ParallelReadingWindow();
-                parallelWindow.Show();
+                if (parallelWindow != null)
+                {
+                    parallelWindow.ShowDialog();
+                }
             }
             catch (Exception ex)
             {

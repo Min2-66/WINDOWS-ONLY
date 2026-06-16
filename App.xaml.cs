@@ -19,10 +19,18 @@ namespace ScholasticaReader
                     return;
                 }
                 
-                var license = new LicenseService();
-                if (!license.ValidateLicense())
+                try
                 {
-                    MessageBox.Show("License validation failed. Application will exit.", "License Error");
+                    var license = new LicenseService();
+                    if (license == null || !license.ValidateLicense())
+                    {
+                        MessageBox.Show("License validation failed. Application will exit.", "License Error");
+                        Shutdown(1);
+                    }
+                }
+                catch (Exception licenseEx)
+                {
+                    MessageBox.Show($"Error validating license: {licenseEx.Message}", "License Error");
                     Shutdown(1);
                 }
             }
