@@ -3,6 +3,13 @@ obj/
 *.user
 *.suo
 *.cache
-*.vs/
+.vs/
 Data/*.db
 !Data/.gitkeep
+.github/
+*.db
+*.exe
+*.dll
+*.pdb
+.DS_Store
+node_modules/

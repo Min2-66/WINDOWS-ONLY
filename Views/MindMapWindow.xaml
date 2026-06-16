@@ -1,10 +1,13 @@
 <Window x:Class="ScholasticaReader.Views.MindMapWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Mind Map" Height="500" Width="700">
-    <Grid>
-        <Canvas x:Name="MapCanvas" Background="White">
-            <TextBlock Text="Central Idea" Canvas.Left="300" Canvas.Top="200" FontSize="20" FontWeight="Bold"/>
-        </Canvas>
+        Title="Mind Map" Height="500" Width="700"
+        WindowStartupLocation="CenterOwner">
+    <Grid Background="#F9F9F9">
+        <Border Background="White" BorderBrush="#DDD" BorderThickness="1" Margin="10">
+            <Canvas x:Name="MapCanvas" Background="White">
+                <TextBlock Text="Central Idea" Canvas.Left="300" Canvas.Top="200" FontSize="20" FontWeight="Bold"/>
+            </Canvas>
+        </Border>
     </Grid>
 </Window>
